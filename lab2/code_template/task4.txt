@@ -1,0 +1,82 @@
+Cost LE ( #number of server n = 8)​
+==================================
+Cost will include :​
+
+Number of election request ​
+Number of notify request ​
+Syncronization cost = 1 (becase we, fetch all the data in single request)
+​
+
+Best case (all servers running): ​
+
+Number of election request = 1​
+Number of notify request ( for notifying leader IP) =  n – 1​
+So, Cost  = n​ + 1 (Syncronization cost )​
+
+​
+
+Worst Case (Only server 1 running): ​
+
+Number of election request = n - 1​
+Number of notify request ( for notifying leader IP) =  n – 1​
+So, Cost  = 2n – 2 + 1  (Syncronization cost )
+
+
+
+Our LE properties​
+==================
+​Intiation​
+---------
+Any process who unable to communicate with current Leader will start the election ​
+
+If multiple server cannot communicate with current Leader then, multiple simultaneous election will start​
+
+Termination​
+-----------
+All election process will elect the last server_id at the end of election ​
+
+Naming​
+-------
+All servers know about server_ip and server_id of every other process. But initially any server have no idea about server crashing​
+
+​
+So, Our LE algorithm fullfill all properties 
+
+
+
+
+
+
+Cost of Adding message to the board​
+===================================
+Cost for non-leader server to leader = 1 ​
+
+Cost to propagate = n-1 ​
+
+Final Cost = n 
+
+
+
+
+Pros and Cons​
+=============
+
+Pros:​
+
+1.Easy to Implement ​
+
+2. Easy to detect dead server​
+
+Cons​
+
+1. All requests need to handle by one server, so time consuming ​
+
+2. If leader dead during execution, Data may loss​
+
+3. Olnly good for less amount of request​
+
+4. Bottleneck possible ​
+
+5. No multiple coordinator possible ​
+
+6. Other servers cannot detect that leader too much busy now  

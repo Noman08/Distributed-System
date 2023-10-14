@@ -1,0 +1,366 @@
+Intruduction
+1. The network is secure, Network is homongeneous, Network is reliable, No change in network topology, One admin controls all, No bandwidth limit, Cost is zero to transerfer data from one point to another point, No latency
+
+-------------------------------------------------------
+Process and Architecture
+- Dining Philosopher solutions
+	- Global Controlle, Decide who can it
+	- Assign order to the resources - starvation
+	- Choose Randomly 
+
+problem of direct communication: 
+ - Tight coupling of space and time
+ - Communicator alwasy need to know whre the procudur reside
+ - Reciever always need to be online to accpet reqeust
+ - Indiect communcation fix this problem
+ 
+Indiect communication: sender -> middle man -> receiver
+ 	- Group Communication: One-to-many multicast communication, group has groupID, one sender send all others in the group receive.
+ 		- Sender does not need to know where the receiver reside or what is receiver ID
+ 		- Bandwidth save
+ 		- Time coupling: receiver need to be online
+ 		- Example: Group voice call
+ 	- Publish-Subscribe:
+ 		- Publisher publish events, subscriber who has interest in particular event request for that event
+ 		- Like Facebook Feeds
+ 		- not tightly coupled with time and space
+ 	- Message Queue:
+ 		- Like publisher-subscriber
+ 		- producer send a message in a queue
+ 		- Consumer can request for the message or middle-man (message queue) can notify.
+ 		- No spcace ,time coupling
+ 		- Example : Private Chat, Email
+
+
+------------------------------------------------------------------------------
+Mutual Exclusion
+- Abstract idea to manage unique access to resources
+- Algorithms should ensure
+	- Safty : Only one person or process can excute CS at a time
+	- Liveness: Every reqeust to execute CS need to be executed
+	- Ordering: Algorithms should follow the same order of the requests for CS
+- Good Algorithm
+	- Throughput : how many opearation they can perform in a unit time
+	- Delay: To to acuire or release a resource
+	- Number of messeage need to acuire or release a resource
+
+
+In decentralize Algorithm Mutual exclusion cannot be deterministically guaranteed in falt-tolerance case. Why?
+
+	- This algorithm assumes that failure node recoverse quickly. After reboot coordinator could have forgotten any previous vote, so the coordinator can grant permission to the requested process incorrectly.
+
+- Ricart & Agrawala's Algorithm (Distributed Algorithm)
+	1. Send a timestamped request to all
+	2. Receiver send "ack" if
+		- Receiver does not want to enter CS or want to enter but timesramp is larger then the sender
+		- If you are alread in CS , buffer the request
+	3. If sender got all "ack" response from others, Enter CS
+	4. If you want to exit from CS , send ack to all who are in your buffer
+- messge 2(n-1) 
+
+properties of leader selection algorithms:
+1. Initiation: Any process who observe leader is not reponding can initiate election
+2. Termination: Algorithm should terminate.
+3. Elect leader: End of the election, the elected coordinator whould be unique
+4. Every process should no the other process ID 
+5. No body knows which process crashed
+	
+	
+-------------------------------------------------------------------------------
+Consistency and Replication
+
+dining philosophers probalilistic solution:
+
+thinking
+trying = true
+stick1 = null
+stick2 = null
+
+while(trying):
+	stick1 = random(left,right)
+	if ~stick1 available
+		stick2 = ~stick1
+		trying= false
+	else
+		drop stick1
+start Eating
+drop stick1
+drop stick2
+
+--
+- How to we measure Consistency? - Global Observer
+1. Data-Centric Consistency Model: Data update are propagated across the replicas to keep them consistent.
+	- Consistency specification model -> We study Continous Consistency Model
+		- Continuous Consistency Models provide mechanisms to measure and specify inconsistencies
+		- Matrics of consistency has three axes
+			- Numerical Deviation: Deviation in the numerical values between replicas (how many updates other replicas are not yet seen)
+			- Order deviation: ordering of update operations (how many local updates are not propagated)
+			- Staleness Deviation: staleness between replicas ( how long has it been since last upate propagated), Normally use VC (logical time)
+	- Consistent Ordering
+		- Total ordering : Pi sends mi, pj sends mj. if one process delivers mi before mj then other process follow the order
+			- not necessary  sequntial or causal
+		
+		- Sequential Ordering : Sequence of messages, set of messages received are in the same sequential order. FIFO ordering, for n instruction there will be O(n!) combinations 
+			- not necessary causal or total
+		
+		- Causal Ordering: causality: if mi->mj, then any correct process that delivers mj will deliver mi before mj, timstamp:  C(a) < C(b) 
+			- sequential , but not total
+	- Problem : Data-centric models lead excessive overheads if majority operations are reads or update occur frequently and from one client process.
+2. Client-Centric consistency Models - clients connect to different replicas at each time. the replica is bought up to date with the replica that the client accessed previously
+	- Eventual Consistency: all replicas eventually converge on a final value. Replicas become consistant in the absence of updates
+		- Write-write conflicts are rare, Read-write conflict are more frequent, Mobile environments, 
+		- Handles networks failures well
+		- But very simple for of consitency
+		- Google, Facebook, dynamo ..
+		- not good-enough when the client process accesses data from different replicas
+	- Client Consistency Guarantees : provides guarantees for a single client for its accesses to a data-store
+Consistency protocaol: Protocol for eventual consistency
+- Bayou : A system for eventual consistency
+	- Goal: is to use shared resources with a very limited connectivity.
+	- How it work
+		- use eventual cosistency
+		- Vector clock: To detect which bookings happened first
+	- Dealing with inconsistencies
+		- Detect logs  
+		- Resolve conflict 
+	
+---------------------------------------------------------------------------------------------------------------
+Naming 1:
+- Uniquely identify entities in DS (Entities = process, objects, ...)
+1. Flat Naming: identifiers are random bits of strings
+2	- Broadcasting: boradcast id to the netework. example: ARP
+	- Forward Pointers: locating mobile entities. 
+	- DHT: two opearations : put(k,v), get(k)
+		- Chord: is a representative DHT. assign m-bit identifer key to each node.
+		- key resolution time O(log n)
+		- FT  finger table, FT[i] = succ( p + 2^(i-1))
+		- resolve "k" at node "n" , q = FT[i] <= k < FT[j+1]
+		- On join node p: looks up succ(p) and insert intself into the ring, split the data
+		- On leave: contacts pred(p) and copy the data to succ(p)
+2. Structured Naming : organize into name spaces 
+	- Name spaces: directed graph consists of Leaf ( represent entity) and Directory node ( refers leaf or other direcotory node)
+	- Dsitributed Name Resolution
+		- Iterative name Resolution ( root Name server) -> NLNS
+		- Recursive Name Resolotion 
+3. Attribute-based naming: 
+	- look up entities by means of ther attributs 
+	- loop is very expensive in here. That's why LAPD used
+	- Example : LAPD 
+		- consist of "directory enties" (DE)
+			- DE is (attribute,value) pair
+			- LADP specifies five ( country, Location, Organization, OU, CN ) attributes for each DE
+
+---------------------------------------------------------------------------------------------------------------
+
+
+
+Timing & synchronization:
+- Time servers does not consider network or processing latency
+1. Cristian angorithm: Tnew = Tserver + (T1 - T0)/2, Accuracy = +- ((T1 - T0)/2 - Tmin)
+	- consider processing and network latency
+2. Berkelye's Algorithm : Master node calculate fault-tolerant Average time for n nodes and propagete the offset to all nodes, then all nodes adjust their local time
+	- Does not consider processing delay
+4. Network Time Protocol (NTP): Use UDP. Since, TCP do the retransmission(streaming) internally, Algorithm has now idea about that retransmission delay. That's why UDP is used here. 
+	- SNTP(Simple NTP) - Subset of NTP, just use unicast. Like Cristian's Algorithm consider Server processing and network delay.
+		- Delay = (T4 - T1) - (T3 - T2)
+		- Time_offset = ((T2 - T1) + (T3 - T4))/ 2
+			
+Timing 2: 
+- ADS (Asynchronous DS) - No notion of global clock.
+- Consistent Cut : (e elementof C) and (e'→ e) => e' elementof C
+1. Passive Monitoring
+	- Logical and Vecotor clock : to construct consistent cut
+   	- Logical Clock: Logical clock of process p counts how many events in a distributed computation causally preceded the current event at p (including the current event).
+   		- Causal delivery rule: Event notification messages are delivered to p 0 in the increasing logical clock timestamp order
+   	- Vector Clock: 
+   		- pairwise inconsistent if: (VC(ei)[i] < VC(ej)[i]) or (VC(ej)[j] < VC(ei)[j])
+   		- Cut Consistency: If at least two events are pairwise inconsistent, then the cut is inconsistent
+ 
+2. Active Monitoring: also referred to as constructing a distributed snapshot
+	- Distributed Snapshot Protocol(Chandy and Lamport)
+		- P2 must stop recording events from p1 after it receives the "take snaptshot" message from p1
+		- Goal: Snapshot  
+3. Active vs Passive : Active monitoring query the system, but in passive montoring every node forword state to global observer (p0)
+
+---------------------------------------------------------------------------------------------------------------
+
+Fault Tolerant
+- A system is called fault tolerant if it can provide its services even in the presence of faults.
+- Dependable system: Availability, Reliablility, Safety, Maintainability
+- Common Failure reasons: Hardware faults, Software faults, Human error(operator), N/w errors, Power outage
+- Failure Models: Crash Failure, Omission(Receive, send) Fuailure, Timiing Failure, Response Failure (value, state transiiton), Byzantine Failure
+- Agreement in Faulty system for a process group: Electing a coordinator, commit transactions?, divide tasks among workes, sysnchronization
+- Byzantine Agreement problem assumtions: 
+	- Processes are are synchronous, 
+	- messages are unicast
+	- Communication delay is bounded
+	- at most k faulty process
+	- N process, where each process i will provide a value vi to others
+- Reliable Communication
+	- Request-Reply Communication: designed to support roles and message exchanges in client-server interactions
+	-	- Classes of Failures:
+			- client unable to locate the server : solution: raise and exception at client side
+			- request from clienet to the server is lost : solution :  use timer when seding reqeues message
+			- server crashes after receiving a request: solution : use timer when sending request message
+			- reply message from the server to client is lost
+			- client crashes after seding the reqeust
+				- Orphans: Client crashes while the server is performing computation for that client
+				- Problems
+					- Waste CPU Cycles
+					- might lock up files and tie up valuable resources
+					- If client reboots reply comes back immediately afterwards, a confusion might occur
+				- Solutions
+					- Extermination, Reincarnation, Gentle Reincarnation, Expiration
+Automic multicast: Either deliver a message to all process or none. and follow the same order for all message. 
+- ensure process to maintain consistent data
+- Can be obtained by Virtual synchrony
+Distributed Commit: An operation is performed by each member of a process group or none.
+	- Commit protocals
+		- One-Phase Commit(1PC):
+			- 
+		- Two-Phase Commit(2PC): 
+			- phase 1: VOTE_REQUEST -> VOTE_COMMIT/VOTE_ABOART, 
+			- phase 2: 
+				- if VOTE_COMMIT -> GLOBAL_COMMIT to all, else GLOBAL_ABOART to all. 
+				- participants wait for final reaction if voted for commit
+				- if Gloaba_commit received commit transaction or abort transcation
+		- Three-Phase Commit(3PC): 
+		
+Paxos
+ - Consensus protocol : one of the most efficient and elegant consensus algorithms
+ - Assumtion
+ 	- n/w is Asynchronous and can lose or duplicate message, but cannot corrupt
+ 	- P's can crash, P's are non-Byzantine, p's have permanent storage, P's can propose values
+ - Goal: Agreed values should not be proposed values by processes.
+ - Safty:
+ 	- Only a value that proposed can be chosen
+ 	- Chose only single value
+ 	- Process nerver know about the value unless it has been chosen
+ - Liveness:
+ 	- A value is chosen
+ 	- Chosen value learns by a process 
+ - Three roles of a process : Proposers, Acceptors, Learners
+ 
+
+
+
+--------------------------------------------------------------------------------------------------------------------------
+Application
+CAN: Content Addressable Network 
+- Each node and data has unique ID in an d-Dimensional space, routing table size O(d)
+- Lookup complexity: O(d*n^1/d)
+- Lookup: every node knows its neighbor nodes, it can forward query to closest node to the query ID
+- Joining new node:
+	1. Find a node "I" already inside CAN
+	2. Select a Random point (x,y) inside CAN
+	3. I discover a point (x,y) near J node
+	4. J's area divided into half and new node owns one half
+- Node Departure: 
+	- Normal leave: Node handovers its zone and data to one of its neighbors.
+	- Sudden leave:
+		- Every other node ping ther neighbors node regular basis. If one node down (no ping response), one neighboring node takes over the zone
+		- Every node has backup of other neighbor node, so no data loss in case of accidental leave 
+ 
+BitTorrent
+- P2P content distribution for file sharing 
+-Concepts: 
+	- Each file is divided into smaller pieces
+	- A downloader requests for the desired pieces from neighbors
+	- Exact Order of pieces are not mandatory while downloading 
+	- all nodes can contribute
+- swarm: set of peer noedes downloading the same file
+- Tracker: tracks all peers who download files
+- Seeder: peer with entire file
+- Leech: is a downloader
+- Pieces : Rarest-first, random first , end game
+- Free Riding: avoid nodes only download no uplodad
+	- fix with "Tit-for-tat"
+		- I give you give
+		- Incentive to upload
+- Trackerless Bittorrent - To centralize tracker
+	- use DHT
+
+- No tracing of file transfer. Illegal file transfer possible
+- No one to control
+
+Tor - based on onion routing
+- Hidden service: Deploying a server without knowing where it is or who runs it on the inernet. Anyone can connect. 
+
+
+
+GFS 
+---
+Design Decisions
+- Files stored as fixed size chunks
+- Reliable because each file replicated across 3+ chunkservers
+- single master
+- No caching
+- Master's Responsibilty: Store metadata, namespace management, communication with chunk-servers, chunk creation, re-replication, rebalancing, Garbage collection, stale replica deletion
+
+Map Reduce
+- A programming model for large scale computations, which process large input and produce large output.
+
+- Design
+ - Partiion input data into M splits
+ - Use Map to extract information from each split, from each split R partisions found
+ - Shuffle and then sort
+ - Use Reducer to aggreate, filter or summerize
+ - offen M = 200,000; R = 4,000
+Four main phases: 1. Map (by programmer) , 2. Shuffle (by framewrok), 3. Sort (by framework), 4 Reduce( by programmer)
+Fault tolerance
+	- On worker failure: 
+		- Re-excute completed and inprogress map task
+		- Re-excute in progress reduce tasks
+		- Master commit the completed tasks
+	- On Master failure:
+		- state saved to GFS
+		- add new master and run from the saved checkpoint
+Example: Hadoop (used by FB, Yahoo..), open source  
+ 
+	
+Amazon Dynamo
+-------------
+- Key-value storage system (put, get interfaces exists)
+ 	- provide eventual consistency
+ 	- Main storage for some amazon' products (e.g., shopping carts)
+	- Similar with Chord
+	
+DC must provide - Availability, Scalability, Fault Tolerance, Manageablility
+
+Dynamo is modified version of Chord DHT. why?
+	- One problem of Chord in this perspective: 
+		- Chords are design for milliions of nodes (but dynamo uses thousands of nodes). On Chords nodes placed randomly on ring, that's why some nodes are responsible for smaller part of the key space and some nodes larger part of the key space. Which leads uneven data and load distribution
+		- Dynamo solved this problem by using "virtual nodes". Each physical nodes have multiple virtual nodes, which leads a more eventual distribution of key space and load.
+		
+	- Other problem of Chord: 
+		- To scale Routing table size is log(n), Lookup needs log(n) hops
+	- In dynamo routing table size is n, becase they are fully meshed and lookups only need one hop
+- Data versioning
+	- A vector clock is associated with each object version
+	- Multiple version of same object might co-exit. If any problem with system they can show old version, otherwise object will be consistent eventually.
+	- Conflict can be resolved automatically using timestamp( vector clock) by system. But semantically conflict resolution pushed to application to resolve the conflict. Like Bayou.
+	- "Quorum-likeness": get() & put() driven by two parameters:
+		- R the minimum number of replicas to read
+		- W the minimum number of replicas to write 
+		- if R+W > N , then the system is "quorum-like" system
+		
+		
+Block Chain
+-----------
+- Smart contract : are code that runs inside blockchain, fully distributed and triggered by external event
+- Aims of BC:
+	- Eliminate the middleman
+	- Eliminate double spending
+	- faster, secure and traceable history
+- PoW
+	- Avoid Sybil attacks
+	- verfiy stransactions as miner
+	- Double spending detection
+	- Add valid transaction in block chain, if specific miner wins
+Bitcoin
+Ethical challenges:
+ - No cetral government
+ - Untraceable payment
+
+
+
